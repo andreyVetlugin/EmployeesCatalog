@@ -1,0 +1,295 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>Профили</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.0/css/bootstrap.min.css" rel="stylesheet" />
+</head>
+<body class="form-group col-md-5">
+    <ul class="list-group list-group-horizontal">
+        <li style="border: none;" class="list-group-item"> <a href="EmployeeWithProfileEditor.html"> Профили и сотрудники </a></li>
+        <li style="border: none;" class="list-group-item"> <a href="EmployeeEditor.html"> Сотрудники </a></li>
+    </ul>
+    <h2>Профили:</h2>
+    <div id="errors" class="alert alert-danger" style="display:none;"></div>
+    <form name="Profiles">
+        <input type="hidden" name="id" value="-1" />
+        <div>
+            <label for="fullName">Полное имя:</label>
+            <input class="form-control" name="fullName" />
+        </div>
+        <div>
+            <label for="email">Email:</label>
+            <input class="form-control" name="email" type="email" />
+        </div>
+        <div>
+            <label for="birthDate">Дата рождения:</label>
+            <input class="form-control" name="birthDate" type="date" />
+        </div>
+        <div>
+            <label for="phoneNumber">Номер телефона:</label>
+            <input class="form-control" name="phoneNumber" type="tel" />
+        </div>
+        <div class="panel-body">
+            <button type="button" id="submitButton" class="btn btn-primary">Добавить</button>
+            <button type="button" id="resetButton" class="btn btn-primary">Сбросить</button>
+        </div>
+    </form>
+
+
+    <table class="table table-condensed table-striped ">
+        <thead><tr><th style="display:none;">Id</th><th>Полное имя</th><!--<th>Подразделение</th><th>Оклад</th>--></tr></thead>
+        <tbody>
+        </tbody>
+    </table>
+    <nav aria-label="Page navigation ">
+        <ul class="pagination" id="pagination">
+        </ul>
+    </nav>
+    <script>
+
+        async function GetProfiles(startItem, itemsCount) {
+            const response = await fetch("Profiles?startIndex=" + startItem + "&itemsCount=" + itemsCount, {
+                method: "GET",
+                headers: { "Accept": "application/json" }
+            });
+            if (response.ok === true) {
+                const Profiles = await response.json();
+                let rows = document.querySelector("tbody");
+
+                rows.innerHTML = "";
+
+                Profiles.items.forEach(e => {
+                    rows.append(CreateRow(e));
+                });
+
+                ConfigurePagination(5, startItem, Profiles.itemsCount);
+            }
+            else {
+                handleRequestErrors(response.json)
+            }
+        }
+
+        async function GetProfile(id) {
+            const response = await fetch("Profiles/" + id, {
+                method: "GET",
+                headers: { "Accept": "application/json" }
+            });
+            if (response.ok === true) {
+                const profile = await response.json();
+                const form = document.forms["Profiles"];
+                form.elements["id"].value = profile.id;
+                form.elements["fullName"].value = profile.fullName;
+                form.elements["email"].value = profile.email;
+                form.elements["birthDate"].value = GetFormDate(new Date(profile.birthdate));
+                form.elements["phoneNumber"].value = profile.phoneNumber;
+            } else {
+                handleRequestErrors(response.json)
+            }
+        }
+
+        async function CreateProfile(fullName, email, birthDate, phoneNumber) {
+            resetErrors();
+            const response = await fetch("Profiles", {
+                method: "POST",
+                headers: { "Accept": "application/json", "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    fullName: fullName,
+                    email: email,
+                    birthDate: birthDate,
+                    phoneNumber: phoneNumber,
+                })
+            });
+
+            if (response.ok === true) {
+                location.reload();
+            }
+            else {
+                const errorData = await response.json();
+                handleRequestErrors(errorData);
+            }
+        }
+
+        async function EditProfile(ProfileId, fullName, email, birthDate, phoneNumber) {
+            resetErrors();
+
+            const response = await fetch("Profiles",
+                {
+                    method: "PUT",
+                    headers: { "Accept": "application/json", "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        Id: ProfileId,
+                        fullName: fullName,
+                        email: email,
+                        birthDate: birthDate,
+                        phoneNumber: phoneNumber
+                    })
+                });
+
+            if (response.ok === true) {
+                location.reload();
+            } else {
+                const errorData = await response.json();
+                handleRequestErrors(errorData);
+            }
+        }
+
+        async function DeleteProfile(id) {
+            resetErrors();
+            const response = await fetch("Profiles/" + id, {
+                method: "DELETE",
+                headers: { "Accept": "application/json" }
+            });
+            if (response.ok === true) {
+                location.reload();
+            }
+            else {
+                const errorData = await response.json();
+                handleRequestErrors(errorData);
+            }
+        }
+
+        function reset() {
+            const form = document.forms["Profiles"];
+            form.reset();
+            form.elements["id"].value = -1;
+        }
+
+        function handleRequestErrors(errors) {
+
+            if (errors.hasOwnProperty("errors")) {
+                for (prop in errors["errors"])
+                    for (error of errors["errors"][prop])
+                        addError(error);
+            }
+            else {
+                addError(errors)
+            }
+            document.getElementById("errors").style.display = "block";
+        }
+
+        function addError(error) {
+            const p = document.createElement("p");
+            p.append(error);
+            document.getElementById("errors").append(p);
+        }
+
+        function resetErrors() {
+            document.getElementById("errors").innerHTML = "";
+            document.getElementById("errors").style.display = "none";
+        }
+
+        function GetFormDate(date) {
+            var d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
+            return ("0000" +
+                d.getFullYear()).slice(-4) +
+                "-" +
+                ("00" + (date.getMonth() + 1)).slice(-2) +
+                "-" +
+                ("00" + date.getDate()).slice(-2);
+
+        }
+
+        function CreateRow(Profile) {
+
+            const tr = document.createElement("tr");
+            tr.setAttribute("data-rowid", Profile.Id);
+
+            const idTd = document.createElement("td");
+            idTd.append(Profile.id);
+            idTd.style.display = "none";
+            tr.append(idTd);
+
+            const fullNameId = document.createElement("td");
+            fullNameId.append(Profile.fullName);
+            tr.append(fullNameId);
+
+            const linksTd = document.createElement("td");
+
+            const editLink = document.createElement("a");
+            editLink.setAttribute("data-id", Profile.id);
+            editLink.setAttribute("style", "cursor:pointer;padding:15px;");
+            editLink.append("Изменить");
+            editLink.addEventListener("click", e => {
+                e.preventDefault();
+                GetProfile(Profile.id);
+            });
+            linksTd.append(editLink);
+
+            const removeLink = document.createElement("a");
+            removeLink.setAttribute("data-id", Profile.id);
+            removeLink.setAttribute("style", "cursor:pointer;padding:15px;");
+            removeLink.append("Удалить");
+            removeLink.addEventListener("click", e => {
+                e.preventDefault();
+                if (!confirm("Удалить запись?"))
+                    return;
+                DeleteProfile(Profile.id);
+            });
+
+            linksTd.append(removeLink);
+            tr.appendChild(linksTd);
+            return tr;
+        }
+
+
+        document.getElementById("resetButton").addEventListener("click", e => {
+            reset();
+        });
+
+        document.getElementById("submitButton").addEventListener("click", e => {
+            const form = document.forms["Profiles"];
+            const id = form.elements["id"].value;
+            const fullName = form.elements["fullName"].value;
+            const birthDate = form.elements["birthDate"].value;
+            const email = form.elements["email"].value;
+            const phoneNumber = form.elements["phoneNumber"].value;
+
+            if (id == -1)
+                CreateProfile(fullName, email, birthDate, phoneNumber);
+            else
+                EditProfile(id, fullName, email, birthDate, phoneNumber);
+        });
+
+
+
+        function ConfigurePagination(itemsPerPage, startItem, itemsCount) {
+
+
+            const viewDistance = 2;
+            let pageCount = Math.ceil(itemsCount / itemsPerPage);
+            let currentPage = Math.ceil(startItem / itemsPerPage) + 1;
+            let paginationForm = document.getElementById("pagination");
+            while (paginationForm.firstChild) {
+                paginationForm.removeChild(paginationForm.firstChild);
+            }
+            let leftPageNumber = currentPage - viewDistance;
+            let rightPageNumber = currentPage + viewDistance;
+            if (leftPageNumber <= 0)
+                leftPageNumber = 1;
+            if (rightPageNumber > pageCount)
+                rightPageNumber = pageCount;
+            for (let i = leftPageNumber; i <= rightPageNumber; i++) {
+                let liElement = document.createElement("li");
+                liElement.setAttribute("class", "page-item");
+                linkElement = document.createElement("a");
+                linkElement.text = i;
+                linkElement.setAttribute("class", "page-link");
+                if (i != currentPage)
+                    linkElement.setAttribute("href", "");
+                linkElement.addEventListener("click", e => {
+                    e.preventDefault();
+                    GetProfiles((i - 1) * itemsPerPage, itemsPerPage);
+                });
+                liElement.appendChild(linkElement);
+                paginationForm.appendChild(liElement);
+            }
+        }
+
+        GetProfiles(0, 5);
+
+    </script>
+</body>
+</html>

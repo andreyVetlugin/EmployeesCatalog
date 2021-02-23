@@ -1,0 +1,273 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>Сотрудники</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.0/css/bootstrap.min.css" rel="stylesheet" />
+</head>
+<body class="form-group col-md-5">
+    <ul class="list-group list-group-horizontal">
+        <li style="border: none;" class="list-group-item"> <a href="EmployeeWithProfileEditor.html"> Профили и сотрудники </a></li>
+        <li style="border: none;" class="list-group-item"> <a href="ProfileEditor.html">  Профили</a></li>
+    </ul>
+    <h2>Сотрудники:</h2>
+    <div id="errors" class="alert alert-danger" style="display:none;"></div>
+    <form name="Employees">
+        <input type="hidden" name="id" value="-1" />
+        <div>
+            <label for="position">Должность:</label>
+            <input class="form-control" name="position" />
+        </div>
+        <div>
+            <label for="subdivision">Подразделение:</label>
+            <input class="form-control" name="subdivision" type="text" />
+        </div>
+        <div>
+            <label for="salary">Оклад:</label>
+            <input class="form-control" name="salary" type="number" />
+        </div>
+        <div class="panel-body">
+            <button type="button" id="submitButton" class="btn btn-primary">Добавить</button>
+            <button type="button" id="resetButton" class="btn btn-primary">Сбросить</button>
+        </div>
+    </form>
+    <table class="table table-condensed table-striped ">
+        <thead><tr><th style="display:none;">Id</th><th>Должность</th><!--<th>Подразделение</th><th>Оклад</th>--></tr></thead>
+        <tbody>
+        </tbody>
+    </table>
+    <nav aria-label="Page navigation ">
+        <ul class="pagination" id="pagination">
+        </ul>
+    </nav>
+    <script>
+
+        async function GetEmployees(startItem,itemsCount) {
+            const response = await fetch("Employees?startIndex=" + startItem + "&itemsCount=" + itemsCount, {
+                method: "GET",
+                headers: { "Accept": "application/json" }
+            });
+            if (response.ok === true) {
+                const employees = await response.json();
+
+                let rows = document.querySelector("tbody");
+                rows.innerHTML = "";
+
+                employees.items.forEach(e => {
+                    rows.append(CreateRow(e));
+                });
+
+                ConfigurePagination(5, startItem, employees.itemsCount);
+            }
+            else {
+                handleRequestErrors(response.json)
+            }
+        }
+
+        async function GetEmployee(id) {
+            const response = await fetch("Employees/" + id, {
+                method: "GET",
+                headers: { "Accept": "application/json" }
+            });
+            if (response.ok === true) {
+                const employee = await response.json();
+                const form = document.forms["Employees"];
+                form.elements["id"].value = employee.id;
+                form.elements["position"].value = employee.position;
+                form.elements["subdivision"].value = employee.subdivision;
+                form.elements["salary"].value = employee.salary;
+            } else {
+                handleRequestErrors(response.json)
+            }
+        }
+
+        async function CreateEmployee(position, subdivision, salary) {
+            resetErrors();
+            const response = await fetch("Employees", {
+                method: "POST",
+                headers: { "Accept": "application/json", "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    Position: position,
+                    Subdivision: subdivision,
+                    Salary: Number(salary)
+                })
+            });
+
+            if (response.ok === true) {
+                location.reload();
+            }
+            else {
+                const errorData = await response.json();
+                handleRequestErrors(errorData);
+            }
+        }
+
+        async function EditEmployee(employeeId, position, subdivison, salary) {
+            resetErrors();
+
+            const response = await fetch("Employees",
+                {
+                    method: "PUT",
+                    headers: { "Accept": "application/json", "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        Id: employeeId,
+                        Position: position,
+                        Subdivision: subdivison,
+                        Salary: salary
+                    })
+                });
+
+            if (response.ok === true) {
+                location.reload();
+            } else {
+                const errorData = await response.json();
+                handleRequestErrors(errorData);
+            }
+        }
+
+        async function DeleteEmployee(id) {
+            resetErrors();
+            const response = await fetch("Employees/" + id, {
+                method: "DELETE",
+                headers: { "Accept": "application/json" }
+            });
+            if (response.ok === true) {
+                location.reload();
+            }
+            else {
+                const errorData = await response.json();
+                handleRequestErrors(errorData);
+            }
+        }
+
+        function reset() {
+            const form = document.forms["Employees"];
+            form.reset();
+            form.elements["id"].value = -1;
+        }
+
+        function handleRequestErrors(errors) {
+
+            if (errors.hasOwnProperty("errors")) {
+                for (prop in errors["errors"])
+                    for (error of errors["errors"][prop])
+                        addError(error);
+            }
+            else {
+                addError(errors)
+            }
+            document.getElementById("errors").style.display = "block";
+        }
+
+        function addError(error) {
+            const p = document.createElement("p");
+            p.append(error);
+            document.getElementById("errors").append(p);
+        }
+
+        function resetErrors() {
+            document.getElementById("errors").innerHTML = "";
+            document.getElementById("errors").style.display = "none";
+        }
+
+        function CreateRow(employee) {
+
+            const tr = document.createElement("tr");
+            tr.setAttribute("data-rowid", employee.Id);
+
+            const idTd = document.createElement("td");
+            idTd.append(employee.id);
+            idTd.style.display = "none";
+            tr.append(idTd);
+
+            const positionId = document.createElement("td");
+            positionId.append(employee.position);
+            tr.append(positionId);
+
+            const linksTd = document.createElement("td");
+
+            const editLink = document.createElement("a");
+            editLink.setAttribute("data-id", employee.id);
+            editLink.setAttribute("style", "cursor:pointer;padding:15px;");
+            editLink.append("Изменить");
+            editLink.addEventListener("click", e => {
+                e.preventDefault();
+                GetEmployee(employee.id);
+            });
+            linksTd.append(editLink);
+
+            const removeLink = document.createElement("a");
+            removeLink.setAttribute("data-id", employee.id);
+            removeLink.setAttribute("style", "cursor:pointer;padding:15px;");
+            removeLink.append("Удалить");
+            removeLink.addEventListener("click", e => {
+                e.preventDefault();
+                if (!confirm("Удалить запись?"))
+                    return;
+                DeleteEmployee(employee.id);
+            });
+
+            linksTd.append(removeLink);
+            tr.appendChild(linksTd);
+            return tr;
+        }
+
+
+        document.getElementById("resetButton").addEventListener("click", e => {
+            reset();
+            ClearPaginationRange();
+            ConstructPaginationRange();
+        });
+        document.getElementById("submitButton").addEventListener("click", e => {
+            const form = document.forms["Employees"];
+            const id = form.elements["id"].value;
+            const position = form.elements["position"].value;
+            const salary = form.elements["salary"].value;
+            const subdivision = form.elements["subdivision"].value;
+
+            if (id == -1)
+                CreateEmployee(position, subdivision, salary);
+            else
+                EditEmployee(id, position, subdivision, salary);
+        });
+
+        function ConfigurePagination(itemsPerPage, startItem, itemsCount) {
+
+
+            const viewDistance = 2;
+            let pageCount = Math.ceil(itemsCount / itemsPerPage);
+            let currentPage = Math.ceil(startItem / itemsPerPage) + 1;
+            let paginationForm = document.getElementById("pagination");
+            while (paginationForm.firstChild) {
+                paginationForm.removeChild(paginationForm.firstChild);
+            }
+            let leftPageNumber = currentPage - viewDistance;
+            let rightPageNumber = currentPage + viewDistance;
+            if (leftPageNumber <= 0)
+                leftPageNumber = 1;
+            if (rightPageNumber > pageCount)
+                rightPageNumber = pageCount;
+            for (let i = leftPageNumber; i <= rightPageNumber; i++) {
+                let liElement = document.createElement("li");
+                liElement.setAttribute("class", "page-item");
+                linkElement = document.createElement("a");
+                linkElement.text = i;
+                linkElement.setAttribute("class", "page-link");
+                if (i != currentPage)
+                    linkElement.setAttribute("href", "");
+                linkElement.addEventListener("click", e => {
+                    e.preventDefault();
+                    GetEmployees((i - 1) * itemsPerPage, itemsPerPage);
+                });
+                liElement.appendChild(linkElement);
+                paginationForm.appendChild(liElement);
+            }
+        }
+
+        GetEmployees(0,5);
+
+
+    </script>
+</body>
+</html>
