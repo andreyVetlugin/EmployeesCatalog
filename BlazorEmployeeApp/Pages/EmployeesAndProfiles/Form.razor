@@ -70,15 +70,12 @@
     {
         <div class="form-group">
             <button type="button" class="btn btn-info" @onclick="@CreateEmployee"> Создать должность </button>
-            <select id="EmployeesSelector" @onchange="@StartEditingEmployee" class="form-control">
+            <select id="EmployeesSelector" @onchange="@StartEditingEmployee" >
                 <option id="0">Выберите должность</option>
-                @if (freeEmployees != null)
-                {
                     @foreach (var e in freeEmployees)
                     {
                         <option value=@e.Id>@e.Position</option>
                     }
-                }
             </select>
         </div>
     }
