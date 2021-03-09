@@ -1,0 +1,14 @@
+﻿@page "/profiles/create"
+@inject HttpClient client
+@inject NavigationManager uriHelper
+<h3>Создать</h3>
+<Form ButtonText="сохранить"prof="@profile"
+      OnValidSubmit="@CreateProfile" />
+@code {
+    ProfileFullView profile = new ProfileFullView();
+    async Task CreateProfile()
+    {
+        await client.PostAsJsonAsync("api/profiles", profile);
+        uriHelper.NavigateTo("profiles");
+    }
+}

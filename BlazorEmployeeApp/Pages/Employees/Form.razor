@@ -1,0 +1,36 @@
+﻿<EditForm Model="@empl" OnValidSubmit="@OnValidSubmit">
+    <DataAnnotationsValidator />
+    <div class="form-group">
+        <label>Должность:</label>
+        <div>
+            <InputText @bind-Value="@empl.Position" />
+            <ValidationMessage For="@(() => empl.Position)" />
+        </div>
+    </div>
+    <div class="form-group ">
+        <div>
+            <label>Подразделение:</label>
+            <div>
+                <InputText @bind-Value="@empl.Subdivision" />
+                <ValidationMessage For="@(() => empl.Subdivision)" />
+            </div>
+        </div>
+    </div>
+    <div class="form-group ">
+        <div>
+            <label>Оклад:</label>
+            <div>
+                <InputNumber @bind-Value="@empl.Salary" />
+                <ValidationMessage For="@(() => empl.Salary)" />
+            </div>
+        </div>
+    </div>
+    <button type="submit" class="btn btn-success">
+        @ButtonText
+    </button>
+</EditForm>
+@code {
+    [Parameter] public EmployeeFullView empl { get; set; }
+    [Parameter] public string ButtonText { get; set; } = "Сохранить";
+    [Parameter] public EventCallback OnValidSubmit { get; set; }
+}

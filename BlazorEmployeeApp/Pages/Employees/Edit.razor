@@ -1,0 +1,21 @@
+﻿@page "/employees/edit/{employeeId:guid}"
+@inject HttpClient http
+@inject NavigationManager uriHelper
+@inject IJSRuntime js
+<h3>Редактирование</h3>
+<Form ButtonText="сохранить" empl="empl"
+      OnValidSubmit="@EditEmployee" />
+@code {
+    [Parameter] public Guid employeeId{ get; set; }
+    EmployeeFullView empl= new EmployeeFullView();
+    protected async override Task OnParametersSetAsync()
+    {
+        empl = await http.GetFromJsonAsync<EmployeeFullView>($"api/employees/{employeeId}");
+    }
+    async Task EditEmployee()
+    {
+        await http.PutAsJsonAsync("api/employees",empl);
+        await js.InvokeVoidAsync("alert", $"Успешно обновлено!");
+        uriHelper.NavigateTo("employees");
+    }
+}

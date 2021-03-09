@@ -1,0 +1,14 @@
+﻿@page "/employees/create"
+@inject HttpClient client
+@inject NavigationManager uriHelper
+<h3>Создать</h3>
+<Form ButtonText="сохранить" empl="@empl"
+      OnValidSubmit="@CreateEmployee" />
+@code {
+    EmployeeFullView empl= new EmployeeFullView();
+    async Task CreateEmployee()
+    {
+        await client.PostAsJsonAsync("api/employees", empl);
+        uriHelper.NavigateTo("employees");
+    }
+}

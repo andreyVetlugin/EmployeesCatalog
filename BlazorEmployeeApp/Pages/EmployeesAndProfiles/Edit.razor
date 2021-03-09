@@ -1,0 +1,21 @@
+﻿@page "/employeesProfiles/edit/{profileId:guid}"
+@inject HttpClient http
+@inject NavigationManager uriHelper
+@inject IJSRuntime js
+<h3>Редактирование</h3>
+<Form ButtonText="сохранить" prof="prof"
+      OnValidSubmit="@EditEmployeeProfile" />
+@code {
+        [Parameter] public Guid profileId { get; set; }
+        EmployeeProfileFullView prof = new EmployeeProfileFullView { Profile = new ProfileFullView()};
+    protected async override Task OnParametersSetAsync()
+    {
+        prof = await http.GetFromJsonAsync<EmployeeProfileFullView>($"api/employeesProfiles/{profileId}");
+    }
+    async Task EditEmployeeProfile()
+    {
+        await http.PutAsJsonAsync("api/employeesProfiles", prof);
+        await js.InvokeVoidAsync("alert", $"Успешно обновлено!");
+        uriHelper.NavigateTo("employeesProfiles");
+    }
+}

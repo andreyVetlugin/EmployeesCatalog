@@ -1,0 +1,70 @@
+﻿@page "/employeesProfiles"
+@inject HttpClient client
+@inject IJSRuntime js
+
+<h3>Сотрудники с профилями</h3>
+<div class="form-group">
+    <a class="btn btn-success" href="employeesProfiles/create"><i class="oi oi-plus"></i> Добавить </a>
+</div>
+<br>
+
+@if (emplProfiles == null)
+{
+    <text>Загрузка...</text>
+}
+else if (emplProfiles.Count() == 0)
+{
+    <text>Информация не найдена</text>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th style="display: none;">Id</th>
+                <th>Сотрудник</th>
+                <th>Должность</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var e in emplProfiles)
+            {
+                if (e.Profile.Id.HasValue)
+                {
+                    <tr>
+                        <td style="display: none;">@e.Profile.Id</td>
+                        <td>@e.Profile.FullName</td>
+                        @if (e.Employee != null)
+                        {<td>@e.Employee.Position</td>
+                        }
+                        else
+                        {<td></td>}
+                        <td>
+                            <a class="btn btn-success" href="employeesProfiles/edit/@e.Profile.Id.Value">Изменить</a>
+                            <button class="btn btn-danger" @onclick="@(() => Delete(e.Profile.Id.Value))"> Удалить</button>
+                        </td>
+                    </tr>
+                }
+            }
+
+        </tbody>
+    </table>
+}
+@code {
+    List<EmployeeProfileShortView> emplProfiles { get; set; }
+    protected override async Task OnInitializedAsync()
+    {
+        var employeesResult = await client.GetFromJsonAsync<ViewListElements<EmployeeProfileShortView>>("api/employeesProfiles");
+        emplProfiles = employeesResult.Items;
+    }
+
+    async Task Delete(Guid employeeId)
+    {
+        var employee = emplProfiles.First(e => e.Profile.Id == employeeId);
+        if (await js.InvokeAsync<bool>("confirm", $"Вы уверены, что хотите удалить {employee.Profile.FullName} {employee.Employee.Position}"))
+        {
+            await client.DeleteAsync($"api/employeesProfiles/{employeeId}");
+            await OnInitializedAsync();
+        }
+    }
+}

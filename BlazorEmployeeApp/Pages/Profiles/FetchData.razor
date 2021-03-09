@@ -1,0 +1,71 @@
+﻿@page "/profiles"
+@inject HttpClient client
+@inject IJSRuntime js
+
+<h3>Профили</h3>
+<div class="form-group">
+    <a class="btn btn-success" href="profiles/create"><i class="oi oi-plus"></i> Добавить </a>
+</div>
+<br>
+
+@if (profiles == null)
+{
+    <text>Загрузка...</text>
+}
+else if (profiles.Count() == 0)
+{
+    <text>Информация не найдена</text>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th style="display: none;">Id</th>
+                <th>Полное имя</th>
+                <th>Почта</th>
+                <th>Дата рождения</th>
+                <th>Номер телефона</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var e in profiles)
+            {
+                if (e.Id.HasValue)
+                {
+                    <tr>
+                        <td style="display: none;">@e.Id</td>
+                        <td>@e.FullName</td>
+                        <td>@e.Email</td>
+                        <td>@e.Birthdate</td>
+                        <td>@e.PhoneNumber</td>
+                        <td>
+                            <a class="btn btn-success" href="profiles/edit/@e.Id">Изменить</a>
+                            <button class="btn btn-danger" @onclick="@(() => Delete(e.Id.Value))"> Удалить</button>
+                        </td>
+                    </tr>
+                }
+            }
+
+        </tbody>
+    </table>
+}
+@code {
+    List<ProfileFullView> profiles { get; set; }
+    protected override async Task OnInitializedAsync()
+    {
+        var profilesResult = await client.GetFromJsonAsync<ViewListElements<ProfileFullView>>("api/profiles");
+        profiles = profilesResult.Items;
+    }
+
+    async Task Delete(Guid profileId)
+    {
+        var profile = profiles.First(e => e.Id == profileId);
+        if (await js.InvokeAsync<bool>("confirm", $"Вы уверены, что хотите удалить {profile.FullName}"))
+        {
+            await client.DeleteAsync($"api/profiles/{ profileId}");
+            await OnInitializedAsync();
+        }
+    }
+}

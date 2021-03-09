@@ -1,0 +1,115 @@
+﻿@inject HttpClient client
+@inject IJSRuntime JS;
+<EditForm Model="@prof" OnValidSubmit="@OnValidSubmit">
+    <DataAnnotationsValidator />
+    <div class="form-group">
+        <label>Полное имя:</label>
+        <div>
+            <InputText @bind-Value="@prof.Profile.FullName" />
+            <ValidationMessage For="@(() => prof.Profile.FullName)" />
+        </div>
+    </div>
+    <div class="form-group ">
+        <div>
+            <label>Почта:</label>
+            <div>
+                <InputText @bind-Value="@prof.Profile.Email" />
+                <ValidationMessage For="@(() => prof.Profile.Email)" />
+            </div>
+        </div>
+    </div>
+    <div class="form-group ">
+        <div>
+            <label>Дата рождения:</label>
+            <div>
+                <InputDate @bind-Value="@prof.Profile.Birthdate" />
+                <ValidationMessage For="@(() => prof.Profile.Birthdate)" />
+            </div>
+        </div>
+    </div>
+    <div class="form-group ">
+        <div>
+            <label>Номер телефона:</label>
+            <div>
+                <InputText @bind-Value="@prof.Profile.PhoneNumber" />
+                <ValidationMessage For="@(() => prof.Profile.PhoneNumber)" />
+            </div>
+        </div>
+    </div>
+
+    @if (prof.Employee != null)
+    {
+        <div class="form-group">
+            <label>Должность:</label>
+            <div>
+                <InputText @bind-Value="@prof.Employee.Position" />
+                <ValidationMessage For="@(() => prof.Employee.Position)" />
+            </div>
+        </div>
+        <div class="form-group ">
+            <div>
+                <label>Подразделение:</label>
+                <div>
+                    <InputText @bind-Value="@prof.Employee.Subdivision" />
+                    <ValidationMessage For="@(() => prof.Employee.Subdivision)" />
+                </div>
+            </div>
+        </div>
+        <div class="form-group ">
+            <div>
+                <label>Оклад:</label>
+                <div>
+                    <InputNumber @bind-Value="@prof.Employee.Salary" />
+                    <ValidationMessage For="@(() => prof.Employee.Salary)" />
+                </div>
+            </div>
+        </div>
+        <button type="button" class="btn btn-danger" @onclick="@UnAttach"> Открепить должность </button>
+    }
+    else if(freeEmployees != null)
+    {
+        <div class="form-group">
+            <button type="button" class="btn btn-info" @onclick="@CreateEmployee"> Создать должность </button>
+            <select id="EmployeesSelector" @onchange="@StartEditingEmployee" class="form-control">
+                <option id="0">Выберите должность</option>
+                @if (freeEmployees != null)
+                {
+                    @foreach (var e in freeEmployees)
+                    {
+                        <option value=@e.Id>@e.Position</option>
+                    }
+                }
+            </select>
+        </div>
+    }
+
+    <button type="submit" class="btn btn-success">
+        @ButtonText
+    </button>
+</EditForm>
+@code {
+    [Parameter] public EmployeeProfileFullView prof { get; set; }
+    [Parameter] public string ButtonText { get; set; } = "Сохранить";
+    [Parameter] public EventCallback OnValidSubmit { get; set; }
+    public List<EmployeeShortView> freeEmployees;
+    protected override async Task OnInitializedAsync()
+    {
+        freeEmployees = await client.GetFromJsonAsync<List<EmployeeShortView>>("api/employeesProfiles/freeEmployees");
+        //this.StateHasChanged();
+    }
+
+    void UnAttach()
+    {
+        prof.Employee = null;
+    }
+
+    void StartEditingEmployee(ChangeEventArgs e)
+    {
+        prof.Employee = client.GetFromJsonAsync<EmployeeFullView>("api/employees/" + e.Value.ToString()).Result;
+    }
+
+    void CreateEmployee()
+    {
+        prof.Employee = new EmployeeFullView();
+    }
+}
